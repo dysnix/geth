@@ -42,14 +42,6 @@ def get_geth_url():
     return url
 
 
-def get_etherscan_api_url(version):
-    url = ETHERSCAN_API_URLS.get(version)
-    if not url:
-        raise BaseException('Unsupported ethereum network')
-
-    return url
-
-
 def get_eth_net_version(w3):
     result = json.loads(w3.currentProvider.make_request('net_version', []))
     version = result.get('result')
@@ -57,6 +49,16 @@ def get_eth_net_version(w3):
         raise BaseException('Error getting ethereum version')
 
     return int(version)
+
+
+def get_etherscan_api_url(version):
+    url = ETHERSCAN_API_URLS.get(version)
+    if not url:
+        raise BaseException('Unsupported ethereum network')
+
+    logging.info(
+        'Detect ethereum network version "{version}" and Etherscan API url "{url}"'.format(version=version, url=url))
+    return url
 
 
 def get_etherscan_highest_block(url):
