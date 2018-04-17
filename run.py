@@ -17,6 +17,12 @@ NODE_TYPES_MAP = {
     r'^(.*)-bitcoin-\d+-.*$': BITCOIN
 }
 
+ETHERSCAN_API_URLS = {
+    1: 'https://api.etherscan.io/api',
+    3: 'http://ropsten.etherscan.io/api',
+    4: 'http://rinkeby.etherscan.io/api',
+}
+
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
@@ -56,12 +62,12 @@ def get_service_params():
     return node_type, url
 
 
-def get_etherscan_highest_block():
+def get_etherscan_highest_block(url):
     request_params = {'module': 'proxy',
                       'action': 'eth_blockNumber',
                       'apikey': settings.ETHERSCAN_API_KEY}
 
-    response = requests.get(settings.ETHERSCAN_API_URL, params=request_params)
+    response = requests.get(get_etherscan_highest_block, params=request_params)
     response_json = response.json()
     highest_block_hex = response_json.get('result')
     highest_block = int(highest_block_hex, 0)
@@ -69,8 +75,18 @@ def get_etherscan_highest_block():
     return highest_block
 
 
+def get_etherscan_api_url(version):
+    url = ETHERSCAN_API_URLS.get(version)
+    if not url:
+        raise BaseException('Unsupported ethereum network')
+
+    return url
+
+
 def get_eth_sync_diff(w3):
-    highest_block = get_etherscan_highest_block()
+    ethercan_api_url = get_etherscan_api_url(int(w3.net.version))
+
+    highest_block = get_etherscan_highest_block(ethercan_api_url)
     current_block = w3.eth.blockNumber
 
     return highest_block - current_block
@@ -90,10 +106,11 @@ def get_node_status(node_type, service_url):
     return True
 
 
+node_type, service_url = get_service_params()
+
+
 @app.route("/healthz")
 def liveness():
-    node_type, service_url = get_service_params()
-
     if not get_node_status(node_type, service_url):
         abort(500)
 

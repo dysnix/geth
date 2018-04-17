@@ -9,8 +9,6 @@ INFLUXDB_DB_NAME = os.environ.get('INFLUXDB_DB_NAME', 'k8s')
 UPDATE_INTERVAL = int(os.environ.get('UPDATE_INTERVAL', 60))
 
 # Etherscan
-ETHERSCAN_API_URL = os.environ.get('ETHERSCAN_API_URL', 'https://api.etherscan.io/api')
-ETHERSCAN_API_KEY = os.environ.get('ETHERSCAN_API_KEY', 'YourApiKeyToken')
 ETH_RPC_TIMEOUT = int(os.environ.get('ETH_RPC_TIMEOUT', 30))
 ETH_MAX_SYNC_DIFF = int(os.environ.get('ETH_MAX_SYNC_DIFF', 50))
 
