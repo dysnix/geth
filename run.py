@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
 
-def get_service_url():
+def get_service_params():
     result = None
     node_type = None
 
@@ -51,7 +51,9 @@ def get_service_url():
 
     logging.info('Detected {node} service port {port}'.format(node=node_type, port=service_port))
 
-    return 'http://localhost:%s' % service_port
+    url = 'http://localhost:%s' % service_port
+
+    return node_type, url
 
 
 def get_etherscan_highest_block():
@@ -74,15 +76,24 @@ def get_eth_sync_diff(w3):
     return highest_block - current_block
 
 
+def get_node_status(node_type, service_url):
+    if node_type == ETHEREUM:
+        w3_http_provider = HTTPProvider(service_url, request_kwargs={'timeout': settings.ETH_RPC_TIMEOUT})
+        w3_client = Web3(w3_http_provider)
+        sync_diff = get_eth_sync_diff(w3_client)
+        if sync_diff >= settings.ETH_MAX_SYNC_DIFF:
+            return False
+    else:
+        raise BaseException('Unsupported node type %s' % node_type)
+
+    return True
+
+
 @app.route("/healthz")
 def liveness():
-    service_url = get_service_url()
-    w3_http_provider = HTTPProvider(service_url, request_kwargs={'timeout': settings.ETH_RPC_TIMEOUT})
-    w3_client = Web3(w3_http_provider)
+    node_type, service_url = get_service_params()
 
-    sync_diff = get_eth_sync_diff(w3_client)
+    if not get_node_status(node_type, service_url):
+        abort(600)
 
-    if sync_diff >= settings.ETH_MAX_SYNC_DIFF:
-        return abort(500)
-
-    return 'Sync diff: %s' % sync_diff
+    return 'ok'
