@@ -82,6 +82,7 @@ def get_node_status(node_type, service_url):
         w3_client = Web3(w3_http_provider)
         sync_diff = get_eth_sync_diff(w3_client)
         if sync_diff >= settings.ETH_MAX_SYNC_DIFF:
+            logging.error('Node un-synced. Diff: %s' % sync_diff)
             return False
     else:
         raise BaseException('Unsupported node type %s' % node_type)
@@ -94,6 +95,6 @@ def liveness():
     node_type, service_url = get_service_params()
 
     if not get_node_status(node_type, service_url):
-        abort(600)
+        abort(500)
 
     return 'ok'
