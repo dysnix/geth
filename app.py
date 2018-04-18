@@ -77,7 +77,7 @@ def get_eth_sync_diff(w3, ethercan_api_url):
     sync_diff = highest_block - current_block
 
     if sync_diff < 0:
-        return 0
+        return current_block, 0
 
     return current_block, sync_diff
 
