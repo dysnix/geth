@@ -20,7 +20,7 @@ Add this section to spec.containers section of your Geth yaml-file. Example:
             path: /healthz
             port: 5000
             scheme: HTTP
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 10
