@@ -44,7 +44,8 @@ def get_eth_net_version(w3):
     result = json.loads(w3.currentProvider.make_request('net_version', []))
     version = result.get('result')
     if not version:
-        raise BaseException('Error getting ethereum version')
+        logging.error('Error getting ethereum version. Using main net as default')
+        return 1
 
     return int(version)
 
