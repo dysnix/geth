@@ -32,9 +32,9 @@ def get_geth_url():
     if not service_port:
         raise BaseException('Error getting geth port')
 
-    logging.info('Detected geth service port %s' % service_port)
-
     url = 'http://localhost:%s' % service_port
+
+    logging.info('Detected geth by url %s' % url)
 
     return url
 
@@ -82,15 +82,6 @@ def get_eth_sync_diff(w3, ethercan_api_url):
     return sync_diff
 
 
-def get_node_status(w3, ethercan_api_url):
-    sync_diff = get_eth_sync_diff(w3, ethercan_api_url)
-    if sync_diff >= settings.ETH_MAX_SYNC_DIFF:
-        logging.error('Node un-synced. Diff: %s' % sync_diff)
-        return False
-
-    return True
-
-
 # Init
 logging.basicConfig(level=logging.INFO)
 
@@ -99,27 +90,28 @@ app = Flask(__name__)
 w3_client = Web3(HTTPProvider(get_geth_url(), request_kwargs={'timeout': settings.ETH_RPC_TIMEOUT}))
 ethercan_api_url = get_etherscan_api_url(get_eth_net_version(w3_client))
 
-START_TIME = datetime.datetime.now()
-LAST_CHECK_TIME = START_TIME
-LAST_SYNC_DIFF = None
+DB = {
+    'START_TIME': datetime.datetime.now(),
+    'LAST_CHECK_TIME': datetime.datetime.now(),
+    'LAST_SYNC_DIFF': None
+}
 
 
 @app.route("/healthz")
 def liveness():
-    if datetime.datetime.now() - START_TIME <= datetime.timedelta(seconds=settings.START_WAIT_TIME):
+    if datetime.datetime.now() - DB['START_TIME'] <= datetime.timedelta(seconds=settings.START_WAIT_TIME):
         logging.info('Waiting start time period (%s sec), passing check' % settings.START_WAIT_TIME)
         return 'starting...'
 
     sync_diff = get_eth_sync_diff(w3_client, ethercan_api_url)
+    time_diff = datetime.datetime.now() - DB['LAST_CHECK_TIME']
 
-    if sync_diff == LAST_SYNC_DIFF and (datetime.datetime.now() - LAST_CHECK_TIME) >= settings.UPDATE_INTERVAL:
+    if sync_diff and sync_diff == DB['LAST_SYNC_DIFF'] and time_diff >= datetime.timedelta(seconds=settings.UPDATE_INTERVAL):
+        logging.error('Node un-synced. Diff: %s' % sync_diff)
         abort(500)
 
-    LAST_SYNC_DIFF = sync_diff
-    LAST_CHECK_TIME = datetime.datetime.now()
-
-    if not get_eth_sync_diff(w3_client, ethercan_api_url):
-        abort(500)
+    DB['LAST_SYNC_DIFF'] = sync_diff
+    DB['LAST_CHECK_TIME'] = datetime.datetime.now()
 
     logging.info('Node is synced')
     return 'ok'
