@@ -79,7 +79,7 @@ def get_eth_sync_diff(w3, ethercan_api_url):
     if sync_diff < 0:
         return 0
 
-    return sync_diff
+    return current_block, sync_diff
 
 
 # Init
@@ -90,11 +90,15 @@ app = Flask(__name__)
 w3_client = Web3(HTTPProvider(get_geth_url(), request_kwargs={'timeout': settings.ETH_RPC_TIMEOUT}))
 ethercan_api_url = get_etherscan_api_url(get_eth_net_version(w3_client))
 
+current_block, sync_diff = get_eth_sync_diff(w3_client, ethercan_api_url)
+
 DB = {
     'START_TIME': datetime.datetime.now(),
-    'LAST_CHECK_TIME': datetime.datetime.now(),
-    'LAST_SYNC_DIFF': None
+    'LAST_BLOCK': current_block
 }
+
+logging.info('Checker started. Last geth block: {last_block}. Sync diff: {sync_diff}'.format(last_block=current_block,
+                                                                                             sync_diff=sync_diff))
 
 
 @app.route("/healthz")
@@ -103,15 +107,13 @@ def liveness():
         logging.info('Waiting start time period (%s sec), passing check' % settings.START_WAIT_TIME)
         return 'starting...'
 
-    sync_diff = get_eth_sync_diff(w3_client, ethercan_api_url)
-    time_diff = datetime.datetime.now() - DB['LAST_CHECK_TIME']
+    current_block, sync_diff = get_eth_sync_diff(w3_client, ethercan_api_url)
 
-    if sync_diff and sync_diff == DB['LAST_SYNC_DIFF'] and time_diff >= datetime.timedelta(seconds=settings.UPDATE_INTERVAL):
-        logging.error('Node un-synced. Diff: %s' % sync_diff)
+    if sync_diff and current_block == DB['LAST_BLOCK']:
+        logging.error('Node not syncing. Diff: %s' % sync_diff)
         abort(500)
 
-    DB['LAST_SYNC_DIFF'] = sync_diff
-    DB['LAST_CHECK_TIME'] = datetime.datetime.now()
+    DB['LAST_BLOCK'] = current_block
 
     logging.info('Node is synced')
     return 'ok'
