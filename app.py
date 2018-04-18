@@ -90,15 +90,17 @@ app = Flask(__name__)
 w3_client = Web3(HTTPProvider(get_geth_url(), request_kwargs={'timeout': settings.ETH_RPC_TIMEOUT}))
 ethercan_api_url = get_etherscan_api_url(get_eth_net_version(w3_client))
 
-current_block, sync_diff = get_eth_sync_diff(w3_client, ethercan_api_url)
+start_current_block, start_sync_diff = get_eth_sync_diff(w3_client, ethercan_api_url)
 
 DB = {
     'START_TIME': datetime.datetime.now(),
-    'LAST_BLOCK': current_block
+    'LAST_BLOCK': start_current_block
 }
 
-logging.info('Checker started. Last geth block: {last_block}. Sync diff: {sync_diff}'.format(last_block=current_block,
-                                                                                             sync_diff=sync_diff))
+logging.info('Checker started. Last geth block: {last_block}. Sync diff: {sync_diff}'.format(
+    last_block=start_current_block,
+    sync_diff=start_sync_diff)
+)
 
 
 @app.route("/healthz")
