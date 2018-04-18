@@ -22,18 +22,19 @@ ETHERSCAN_API_URLS = {
 
 def get_geth_url():
     result = re.search(GETH_POD_HOSTNAME_REGEX, platform.node())
+
     if not result:
-        raise BaseException('Geth pod not found')
+        logging.warning('Geth pod not found. Using default port 8545.')
+        return 'http://localhost:8545'
 
     service_env_name = "%s_GETH_SERVICE_PORT_RPC" % result.group(1).upper().replace('-', '_')
-
     service_port = os.environ.get(service_env_name)
 
     if not service_port:
-        raise BaseException('Error getting geth port')
+        logging.warning('Geth service port not detected. Using default port 8545.')
+        return 'http://localhost:8545'
 
     url = 'http://localhost:%s' % service_port
-
     logging.info('Detected geth by url %s' % url)
 
     return url
