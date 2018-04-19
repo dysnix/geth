@@ -1,8 +1,7 @@
 import os
 
-
 # How long waiting before check after start (in seconds)
-START_WAIT_TIME = int(os.environ.get('START_WAIT_TIME', 900))
+START_WAIT_TIME = int(os.environ.get('START_WAIT_TIME', 120))
 
 # Ethereum
 ETH_RPC_PORT = int(os.environ.get('ETH_RPC_PORT', 8545))
