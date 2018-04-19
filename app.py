@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-import os
-import re
 import json
 import datetime
 import logging
-import platform
 from flask import Flask, abort
 
 import requests
@@ -18,26 +15,6 @@ ETHERSCAN_API_URLS = {
     3: 'http://ropsten.etherscan.io/api',
     4: 'http://rinkeby.etherscan.io/api',
 }
-
-
-def get_geth_url():
-    result = re.search(GETH_POD_HOSTNAME_REGEX, platform.node())
-
-    if not result:
-        logging.warning('Geth pod not found. Using default port 8545.')
-        return 'http://localhost:8545'
-
-    service_env_name = "%s_GETH_SERVICE_PORT_RPC" % result.group(1).upper().replace('-', '_')
-    service_port = os.environ.get(service_env_name)
-
-    if not service_port:
-        logging.warning('Geth service port not detected. Using default port 8545.')
-        return 'http://localhost:8545'
-
-    url = 'http://localhost:%s' % service_port
-    logging.info('Detected geth by url %s' % url)
-
-    return url
 
 
 def get_eth_net_version(w3):
@@ -89,20 +66,15 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-w3_client = Web3(HTTPProvider(get_geth_url(), request_kwargs={'timeout': settings.ETH_RPC_TIMEOUT}))
-ethercan_api_url = get_etherscan_api_url(get_eth_net_version(w3_client))
-
-start_current_block, start_sync_diff = get_eth_sync_diff(w3_client, ethercan_api_url)
+geth_url = 'http://localhost:%s' % settings.ETH_RPC_PORT
+w3_http_provider = HTTPProvider(geth_url, request_kwargs={'timeout': settings.ETH_RPC_TIMEOUT})
+w3_client = Web3(w3_http_provider)
 
 DB = {
     'START_TIME': datetime.datetime.now(),
-    'LAST_BLOCK': start_current_block
+    'LAST_BLOCK': 0,
+    'ETHERSCAN_API_URL': None
 }
-
-logging.info('Checker started. Last geth block: {last_block}. Sync diff: {sync_diff}'.format(
-    last_block=start_current_block,
-    sync_diff=start_sync_diff)
-)
 
 
 @app.route("/healthz")
@@ -111,13 +83,22 @@ def liveness():
         logging.info('Waiting start time period (%s sec), passing check' % settings.START_WAIT_TIME)
         return 'starting...'
 
-    current_block, sync_diff = get_eth_sync_diff(w3_client, ethercan_api_url)
+    try:
+        if not DB['ETHERSCAN_API_URL']:
+            DB['ETHERSCAN_API_URL'] = get_etherscan_api_url(get_eth_net_version(w3_client))
 
-    if sync_diff and current_block == DB['LAST_BLOCK']:
-        logging.error('Node not syncing. Diff: %s' % sync_diff)
-        abort(500)
+        current_block, sync_diff = get_eth_sync_diff(w3_client, DB['ETHERSCAN_API_URL'])
 
-    DB['LAST_BLOCK'] = current_block
+        if sync_diff and current_block == DB['LAST_BLOCK']:
+            logging.error('Node not syncing. Diff: %s' % sync_diff)
+            abort(500)
+
+        DB['LAST_BLOCK'] = current_block
+
+    except Exception as exc:
+        logging.error(exc)
+        return 'ignore'
 
     logging.info('Node is synced')
+
     return 'ok'
