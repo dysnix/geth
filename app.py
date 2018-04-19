@@ -88,16 +88,15 @@ def liveness():
             DB['ETHERSCAN_API_URL'] = get_etherscan_api_url(get_eth_net_version(w3_client))
 
         current_block, sync_diff = get_eth_sync_diff(w3_client, DB['ETHERSCAN_API_URL'])
-
-        if sync_diff and current_block == DB['LAST_BLOCK']:
-            logging.error('Node not syncing. Diff: %s' % sync_diff)
-            abort(500)
-
-        DB['LAST_BLOCK'] = current_block
-
     except Exception as exc:
         logging.error(exc)
         return 'ignore'
+
+    if sync_diff and current_block == DB['LAST_BLOCK']:
+        logging.error('Node not syncing. Diff: %s' % sync_diff)
+        abort(500)
+
+        DB['LAST_BLOCK'] = current_block
 
     logging.info('Node is synced')
 
