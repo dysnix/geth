@@ -9,19 +9,52 @@ any geth provision solution.
 * Geth RPC Kubernetes service name *must* include `geth` in name
 
 # Usage
+* Use image `arilot/geth`
+* Add liveness section
 
-Add this section to spec.containers section of your Geth yaml-file. Example:
+Example:
 
-      - name: liveness
-        image: arilot/geth-kubernetes-checker
+```
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ethereum-geth
+spec:
+  template:
+    metadata:
+      labels:
+        app: geth
+    spec:
+      containers:
+      - command:
+        - bash
+        - -c
+        - gunicorn -b 0.0.0.0 app:app --daemon && geth --syncmode fast=
+        image: arilot/geth
+        imagePullPolicy: Always
         livenessProbe:
-          failureThreshold: 3
+          failureThreshold: 1
           httpGet:
             path: /healthz
-            port: 5000
+            port: 8000
             scheme: HTTP
-          initialDelaySeconds: 60
-          periodSeconds: 10
+          initialDelaySeconds: 300
+          periodSeconds: 300
           successThreshold: 1
-          timeoutSeconds: 10
-        
+          timeoutSeconds: 30
+        name: ethereum-geth
+        ports:
+        - containerPort: 8545
+          name: rpc
+          protocol: TCP
+        - containerPort: 8546
+          name: ws
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /root
+          name: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: ethereum-geth
+```
