@@ -83,7 +83,7 @@ def liveness():
         logging.error(exc)
         return 'ignore'
 
-    if sync_diff and current_block == DB['LAST_BLOCK']:
+    if sync_diff >= settings.ETH_MAX_SYNC_DIFF and current_block == DB['LAST_BLOCK']:
         logging.error('Node not syncing. Diff: %s' % sync_diff)
         abort(500)
 
