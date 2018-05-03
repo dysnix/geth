@@ -32,7 +32,7 @@ w3_client = Web3(w3_http_provider)
 
 
 def get_eth_net_version(provider):
-    result = json.loads(provider.make_request('net_version', []))
+    result = provider.make_request('net_version', [])
     version = result.get('result')
     if not version:
         logging.error('Error getting ethereum network version. Using main net as default')
