@@ -31,8 +31,8 @@ w3_http_provider = HTTPProvider(GETH_URL, request_kwargs={'timeout': settings.ET
 w3_client = Web3(w3_http_provider)
 
 
-def get_eth_net_version(w3):
-    result = json.loads(w3.currentProvider.make_request('net_version', []))
+def get_eth_net_version(provider):
+    result = json.loads(provider.make_request('net_version', []))
     version = result.get('result')
     if not version:
         logging.error('Error getting ethereum network version. Using main net as default')
@@ -76,7 +76,7 @@ def get_eth_sync_diff(w3, ethercan_api_url):
 def liveness():
     try:
         if not DB['ETHERSCAN_API_URL']:
-            DB['ETHERSCAN_API_URL'] = get_etherscan_api_url(get_eth_net_version(w3_client))
+            DB['ETHERSCAN_API_URL'] = get_etherscan_api_url(get_eth_net_version(w3_http_provider))
 
         current_block, sync_diff = get_eth_sync_diff(w3_client, DB['ETHERSCAN_API_URL'])
     except Exception as exc:
