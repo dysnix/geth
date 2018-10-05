@@ -1,4 +1,4 @@
-FROM ethereum/client-go
+FROM ethereum/client-go:release-1.8
 
 USER root
 ADD . /usr/src/app
