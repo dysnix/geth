@@ -1,5 +1,5 @@
-FROM ethereum/client-go:release-1.8
-
+# FROM ethereum/client-go:release-1.8
+FROM ethereum/client-go:v1.8.16
 USER root
 ADD . /usr/src/app
 WORKDIR /usr/src/app
